@@ -3,29 +3,127 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Travel NA Dashboard (Prototype)</title>
+  <title>Travel NA Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header>
-    <h1>Travel NA Dashboard (Prototype)</h1>
-    <p class="subtitle">Layout scaffolded from provided Excel mapping. Replace placeholders with data sources.</p>
+    <h1>Travel NA Dashboard</h1>
+    <p class="subtitle">Upload Excel files to populate widgets</p>
   </header>
 
-  <main class="grid">
-    <section id="widget-1" class="widget"><h2>Widget 1</h2><div class="content">Loading...</div></section>
-    <section id="widget-2" class="widget"><h2>Widget 2</h2><div class="content">Loading...</div></section>
-    <section id="widget-3" class="widget"><h2>Widget 3</h2><div class="content">Loading...</div></section>
-    <section id="widget-4" class="widget"><h2>Widget 4</h2><div class="content">Loading...</div></section>
-    <section id="widget-5" class="widget"><h2>Widget 5</h2><div class="content">Loading...</div></section>
-    <section id="widget-6" class="widget"><h2>Widget 6</h2><div class="content">Loading...</div></section>
-    <section id="widget-7" class="widget"><h2>Widget 7</h2><div class="content">Loading...</div></section>
-    <section id="widget-8" class="widget"><h2>Widget 8</h2><div class="content">Loading...</div></section>
-    <section id="widget-9" class="widget"><h2>Widget 9</h2><div class="content">Loading...</div></section>
-  </main>
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="sfdc">SFDC Details</button>
+    <button class="tab-btn" data-tab="connects">Sales Connects</button>
+    <button class="tab-btn" data-tab="finance">Finance</button>
+    <button class="tab-btn" data-tab="open-rr">Open RR</button>
+    <button class="tab-btn" data-tab="action-items">Action Items</button>
+  </nav>
+
+  <!-- Tab 1: SFDC Details -->
+  <section class="tab-content active" data-tab="sfdc">
+    <main class="grid">
+      <section id="widget-1" class="widget">
+        <h2>Travel NA Bookings FY'27 YTD</h2>
+        <div class="upload-prompt">
+          <label for="file-1">Upload Excel:</label>
+          <input type="file" id="file-1" class="file-input" data-widget="1" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+      <section id="widget-2" class="widget">
+        <h2>Travel NA Bookings Monthly</h2>
+        <div class="upload-prompt">
+          <label for="file-2">Upload Excel:</label>
+          <input type="file" id="file-2" class="file-input" data-widget="2" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+      <section id="widget-3" class="widget">
+        <h2>Travel NA Pipeline Deals</h2>
+        <div class="upload-prompt">
+          <label for="file-3">Upload Excel:</label>
+          <input type="file" id="file-3" class="file-input" data-widget="3" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+    </main>
+  </section>
+
+  <!-- Tab 2: Sales Connects -->
+  <section class="tab-content" data-tab="connects">
+    <main class="grid">
+      <section id="widget-4" class="widget">
+        <h2>Travel NA Client Connect Monthly</h2>
+        <div class="upload-prompt">
+          <label for="file-4">Upload Excel:</label>
+          <input type="file" id="file-4" class="file-input" data-widget="4" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+      <section id="widget-5" class="widget">
+        <h2>Travel NA Meeting Data Monthly</h2>
+        <div class="upload-prompt">
+          <label for="file-5">Upload Excel:</label>
+          <input type="file" id="file-5" class="file-input" data-widget="5" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+    </main>
+  </section>
+
+  <!-- Tab 3: Finance -->
+  <section class="tab-content" data-tab="finance">
+    <main class="grid">
+      <section id="widget-6" class="widget">
+        <h2>Travel NA Open Deals</h2>
+        <div class="upload-prompt">
+          <label for="file-6">Upload Excel:</label>
+          <input type="file" id="file-6" class="file-input" data-widget="6" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+      <section id="widget-7" class="widget">
+        <h2>Budget Vs BE by QTR</h2>
+        <div class="upload-prompt">
+          <label for="file-7">Upload Excel:</label>
+          <input type="file" id="file-7" class="file-input" data-widget="7" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+    </main>
+  </section>
+
+  <!-- Tab 4: Open RR -->
+  <section class="tab-content" data-tab="open-rr">
+    <main class="grid">
+      <section id="widget-8" class="widget">
+        <h2>Open Positions (RRs)</h2>
+        <div class="upload-prompt">
+          <label for="file-8">Upload Excel:</label>
+          <input type="file" id="file-8" class="file-input" data-widget="8" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+    </main>
+  </section>
+
+  <!-- Tab 5: Action Items -->
+  <section class="tab-content" data-tab="action-items">
+    <main class="grid">
+      <section id="widget-9" class="widget">
+        <h2>Action Tracker</h2>
+        <div class="upload-prompt">
+          <label for="file-9">Upload Excel:</label>
+          <input type="file" id="file-9" class="file-input" data-widget="9" accept=".xlsx,.xls,.xlsm">
+        </div>
+        <div class="content">Waiting for file upload...</div>
+      </section>
+    </main>
+  </section>
 
   <footer>
-    <small>Prototype — data comes from extracted_columns.json. Run a local server (e.g., python -m http.server) to view.</small>
+    <small>Run with: python app.py (backend on port 5000)</small>
   </footer>
 
   <script src="script.js"></script>
