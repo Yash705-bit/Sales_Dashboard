@@ -1,0 +1,63 @@
+{
+  "04.Travel NA Bookings.xlsx": {
+    "04.Travel NA Bookings FY’27": []
+  },
+  "05. Travel NA Pipeline Deals.xlsx": {
+    "05. Travel NA Pipeline Deals": []
+  },
+  "06.Travel NA Bookings Current Month.xlsx": {
+    "06.Travel NA Bookings Current M": []
+  },
+  "KPI_Report_Travel NA.xlsx": {
+    "Delivery - KPIs (2)": [],
+    "Sheet1": [
+      "Row Labels",
+      "Offshore",
+      "Onsite",
+      "Grand Total"
+    ],
+    "Marketplace Summary": [
+      "Jan'26 Onwards (Positions Summary)",
+      "Offshore",
+      "Onsite",
+      "Total"
+    ],
+    "Action Tracker": [
+      "S.No",
+      "Action Item",
+      "Owner",
+      "Status"
+    ],
+    "Sales - KPIs": [],
+    "Delivery - KPIs": []
+  },
+  "Travel NA Client Connect-Current Month.xlsx": {
+    "Travel NA Client Connect-Curren": []
+  },
+  "Travel NA Meeting Data Monthly.xlsx": {
+    "Travel NA Meeting Data Monthly": []
+  },
+  "Travel NA Open Deals.xlsx": {
+    "Travel NA Open Deals": []
+  },
+  "Travel NA_Action Tracker.xlsx": {
+    "CP_Details": [
+      "CP ",
+      "Account",
+      "Delivery Partner",
+      "Client Partner/Hunter"
+    ],
+    "Action Tracker": [
+      "Meeting Date",
+      "Action Item",
+      "Owner",
+      "Status",
+      "Priority",
+      "Comments",
+      "Closed Date "
+    ],
+    "Sheet1": [
+      "Priority"
+    ]
+  }
+}
