@@ -11,9 +11,6 @@ const widgetMapping = {
   9: "Travel NA_Action Tracker.xlsx"
 };
 
-// Store uploaded file paths for each widget
-const widgetFilePaths = {};
-
 // Tab switching
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -29,41 +26,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// File input change handler
-document.querySelectorAll('.file-input').forEach(input => {
-  input.addEventListener('change', handleFileUpload);
-});
-
-// Make widget content clickable to open source file
-document.querySelectorAll('.widget').forEach(widget => {
-  const widgetId = widget.id.replace('widget-', '');
-  widget.addEventListener('click', () => {
-    if(widgetFilePaths[widgetId]){
-      window.open(widgetFilePaths[widgetId], '_blank');
-    }
-  });
-  widget.style.cursor = 'pointer';
-});
-
-async function handleFileUpload(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  
-  const widgetId = e.target.dataset.widget;
+async function loadWidget(widgetId){
   const widget = document.querySelector(`#widget-${widgetId}`);
   const contentDiv = widget.querySelector('.content');
-  
-  contentDiv.innerHTML = '<div class="row-info">Uploading and parsing...</div>';
-  
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('widget_id', widgetId);
-  
+  contentDiv.innerHTML = '<div class="row-info">Loading Excel data...</div>';
+
   try {
-    const res = await fetch('http://localhost:5000/api/upload', {
-      method: 'POST',
-      body: formData
-    });
+    const res = await fetch(`/api/widget/${widgetId}/data`, {cache: 'no-store'});
     
     if(!res.ok){
       const err = await res.json();
@@ -72,12 +41,6 @@ async function handleFileUpload(e){
     }
     
     const result = await res.json();
-    
-    // Store download URL for widget click handler
-    if(result.file_download_url){
-      widgetFilePaths[widgetId] = result.file_download_url;
-      console.log(`Widget ${widgetId} download URL:`, result.file_download_url);
-    }
     
     // Special rendering for Widget 1
     if(widgetId === '1'){
@@ -89,6 +52,11 @@ async function handleFileUpload(e){
     contentDiv.innerHTML = `<div class="error">Error: ${escapeHtml(err.message)}</div>`;
   }
 }
+
+// Load every configured source when the page is opened or refreshed.
+document.querySelectorAll('.widget').forEach(widget => {
+  loadWidget(widget.id.replace('widget-', ''));
+});
 
 function renderWidget1(contentDiv, result, widgetId){
   if(!result.data || Object.keys(result.data).length === 0){
@@ -129,7 +97,7 @@ function renderWidget1(contentDiv, result, widgetId){
   
   // Render hierarchical table
   let html = `<div class="widget1-header">
-    <span class="title">${escapeHtml(firstSheet)}</span>
+    <span class="title">${escapeHtml(firstSheet)} <span class="source-file">${escapeHtml(result.filename)}</span></span>
     <span class="icons">🔄 ⛶</span>
   </div>
   <table class="widget1-table">
@@ -168,16 +136,13 @@ function renderWidget1(contentDiv, result, widgetId){
     </tr>`;
   }
   
-  const filePath = widgetFilePaths[widgetId];
-  const openFileBtn = filePath ? `<button class="open-file-btn" onclick="window.open('${filePath}', '_blank'); event.stopPropagation();">📄 Open File</button>` : '';
-  
   html += `</tbody></table>
   <div class="widget1-footer">
-    ${openFileBtn}
     <span class="footer-text">View Report (${escapeHtml(result.filename.slice(0, 20))}) | As of ${new Date().toLocaleString()}</span>
   </div>`;
   
   contentDiv.innerHTML = html;
+  addTableControls(contentDiv);
 }
 
 function renderWidgetData(contentDiv, result, widgetId){
@@ -186,14 +151,12 @@ function renderWidgetData(contentDiv, result, widgetId){
     return;
   }
   
-  const filePath = widgetFilePaths[widgetId];
-  const openFileBtn = filePath ? `<button class="open-file-btn" onclick="window.open('${filePath}', '_blank'); event.stopPropagation();">📄 Open File</button>` : '';
-  
-  let html = `<div class="widget-header">
-    <strong>${escapeHtml(result.filename)}</strong>
-    ${openFileBtn}
-    <div class="row-info">${result.sheets.length} sheet(s)</div>
-  </div>`;
+  const widgetHeader = widgetId === '2' || widgetId === '3'
+    ? ''
+    : `<strong>${escapeHtml(result.filename)}</strong>`;
+  let html = widgetHeader
+    ? `<div class="widget-header">${widgetHeader}</div>`
+    : '';
   
   // Show first sheet with data
   for(const [sheetName, sheetData] of Object.entries(result.data)){
@@ -203,7 +166,6 @@ function renderWidgetData(contentDiv, result, widgetId){
     }
     
     html += `<div class="sheet-name">${escapeHtml(sheetName)}</div>`;
-    html += `<div class="row-info">Rows: ${sheetData.row_count}</div>`;
     
     if(!sheetData.columns || sheetData.columns.length === 0){
       html += '<div class="row-info">No columns found</div>';
@@ -217,18 +179,16 @@ function renderWidgetData(contentDiv, result, widgetId){
     
     // Create table
     html += '<table><thead><tr>';
-    sheetData.columns.slice(0, 5).forEach(col => {
-      html += `<th>${escapeHtml(String(col).slice(0, 20))}</th>`;
+    sheetData.columns.forEach(col => {
+      html += `<th>${escapeHtml(String(col))}</th>`;
     });
-    if(sheetData.columns.length > 5) html += '<th>...</th>';
     html += '</tr></thead><tbody>';
     
     sheetData.rows.forEach(row => {
       html += '<tr>';
-      row.slice(0, 5).forEach(cell => {
-        html += `<td>${escapeHtml(String(cell).slice(0, 25))}</td>`;
+      row.forEach(cell => {
+        html += `<td>${escapeHtml(String(cell))}</td>`;
       });
-      if(row.length > 5) html += '<td>...</td>';
       html += '</tr>';
     });
     
@@ -237,9 +197,47 @@ function renderWidgetData(contentDiv, result, widgetId){
   }
   
   contentDiv.innerHTML = html;
+  addTableControls(contentDiv);
+}
+
+function addTableControls(contentDiv){
+  const table = contentDiv.querySelector('table');
+  if(!table) return;
+
+  const controls = document.createElement('div');
+  controls.className = 'table-controls';
+  controls.innerHTML = '<input type="search" class="table-filter" placeholder="Filter rows..." aria-label="Filter rows">';
+  contentDiv.insertBefore(controls, table);
+
+  const filter = controls.querySelector('.table-filter');
+  filter.addEventListener('input', () => {
+    const query = filter.value.trim().toLowerCase();
+    table.querySelectorAll('tbody tr').forEach(row => {
+      row.hidden = query && !row.textContent.toLowerCase().includes(query);
+    });
+  });
+
+  table.querySelectorAll('thead th').forEach((header, index) => {
+    header.classList.add('sortable');
+    header.title = 'Click to sort';
+    header.addEventListener('click', () => {
+      const rows = Array.from(table.querySelectorAll('tbody tr'));
+      const ascending = header.dataset.sort !== 'asc';
+      rows.sort((a, b) => {
+        const left = a.cells[index]?.textContent.trim().toLowerCase() || '';
+        const right = b.cells[index]?.textContent.trim().toLowerCase() || '';
+        return left.localeCompare(right, undefined, {numeric: true}) * (ascending ? 1 : -1);
+      });
+      rows.forEach(row => table.tBodies[0].appendChild(row));
+      table.querySelectorAll('thead th').forEach(cell => delete cell.dataset.sort);
+      header.dataset.sort = ascending ? 'asc' : 'desc';
+    });
+  });
 }
 
 function escapeHtml(s){
+  if(s === null || s === undefined || String(s).toLowerCase() === 'nan'){
+    return '';
+  }
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-

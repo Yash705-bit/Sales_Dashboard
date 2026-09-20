@@ -6,6 +6,7 @@ import pandas as pd
 import openpyxl
 import json
 import os
+from urllib.parse import quote
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -13,6 +14,9 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Store widget file mappings
+widget_files = {}
 
 WIDGET_CONFIG = {
     1: {"name": "Travel NA Bookings FY'27 YTD", "file": "04.Travel NA Bookings.xlsx"},
@@ -49,6 +53,56 @@ def find_data_table(filepath):
     
     return None, None
 
+def parse_workbook(filepath):
+    """Return the dashboard payload for an Excel workbook."""
+    sheet_name, header_row = find_data_table(filepath)
+    data = {}
+    xls = pd.ExcelFile(filepath)
+
+    for sheet in xls.sheet_names:
+        try:
+            if sheet == sheet_name and header_row:
+                df = pd.read_excel(filepath, sheet_name=sheet, header=header_row-1, nrows=50)
+            else:
+                df = pd.read_excel(filepath, sheet_name=sheet, nrows=20)
+
+            if len(df) > 0 and len(df.columns) > 1:
+                data[sheet] = {
+                    'columns': df.columns.tolist(),
+                    'rows': df.where(pd.notna(df), '').astype(str).values.tolist()[:15],
+                    'row_count': len(df),
+                    'header_row': header_row if sheet == sheet_name else None
+                }
+        except Exception as e:
+            data[sheet] = {'error': str(e)}
+
+    return {
+        'filename': os.path.basename(filepath),
+        'sheets': xls.sheet_names,
+        'data': data,
+        'detected_header_row': header_row,
+        'detected_sheet': sheet_name
+    }
+
+def configured_file(widget_id):
+    """Find the uploaded copy for a widget without relying on process memory."""
+    prefix = f'widget_{widget_id}_'
+    configured_name = secure_filename(WIDGET_CONFIG[widget_id]['file'])
+    direct_path = os.path.join(app.config['UPLOAD_FOLDER'], configured_name)
+    if os.path.isfile(direct_path):
+        return direct_path
+
+    candidates = [
+        os.path.join(app.config['UPLOAD_FOLDER'], name)
+        for name in os.listdir(app.config['UPLOAD_FOLDER'])
+        if name.startswith(prefix) and os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], name))
+    ]
+    if not candidates:
+        return None
+
+    exact = [path for path in candidates if os.path.basename(path) == f'{prefix}{configured_name}']
+    return exact[0] if exact else max(candidates, key=os.path.getmtime)
+
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
@@ -72,57 +126,55 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], f'widget_{widget_id}_{filename}')
         file.save(filepath)
         
-        # Try to find actual data table
-        sheet_name, header_row = find_data_table(filepath)
+        # Store the mapping for download
+        widget_files[widget_id] = filepath
+        print(f"Stored widget {widget_id} file: {filepath}")
         
-        data = {}
-        xls = pd.ExcelFile(filepath)
-        
-        for sheet in xls.sheet_names:
-            try:
-                # If we found a data table, skip to that row
-                if sheet == sheet_name and header_row:
-                    df = pd.read_excel(filepath, sheet_name=sheet, header=header_row-1, nrows=50)
-                else:
-                    df = pd.read_excel(filepath, sheet_name=sheet, nrows=20)
-                
-                # Only include if has meaningful data
-                if len(df) > 0 and len(df.columns) > 1:
-                    data[sheet] = {
-                        'columns': df.columns.tolist(),
-                        'rows': df.astype(str).values.tolist()[:15],
-                        'row_count': len(df),
-                        'header_row': header_row if sheet == sheet_name else None
-                    }
-            except Exception as e:
-                data[sheet] = {'error': str(e)}
-        
-        return jsonify({
-            'success': True,
-            'widget_id': widget_id,
-            'filename': filename,
-            'filepath': filepath,
-            'file_download_url': f'/api/download/{widget_id}/{filename}',
-            'sheets': xls.sheet_names,
-            'data': data,
-            'detected_header_row': header_row,
-            'detected_sheet': sheet_name
-        })
+        result = parse_workbook(filepath)
+        result.update({'success': True, 'widget_id': widget_id,
+                       'filepath': filepath,
+                       'file_download_url': f'/api/download/{widget_id}'})
+        return jsonify(result)
     except Exception as e:
         return jsonify({'error': f'Failed to parse file: {str(e)}'}), 400
 
-@app.route('/api/download/<int:widget_id>/<filename>')
-def download_file(widget_id, filename):
+@app.route('/api/widget/<int:widget_id>/data')
+def widget_data(widget_id):
+    """Load the configured workbook on every dashboard refresh."""
+    if widget_id not in WIDGET_CONFIG:
+        return jsonify({'error': 'Invalid widget ID'}), 400
+
+    filepath = configured_file(widget_id)
+    if not filepath:
+        return jsonify({
+            'error': f'No Excel source found for widget {widget_id}. '
+                     'Place the configured workbook in the uploads folder.'
+        }), 404
+
+    try:
+        result = parse_workbook(filepath)
+        result.update({'success': True, 'widget_id': widget_id,
+                       'file_download_url': f'/api/download/{widget_id}'})
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': f'Failed to parse file: {str(e)}'}), 400
+
+@app.route('/api/download/<int:widget_id>')
+def download_file(widget_id):
     """Serve uploaded file for download"""
     if widget_id < 1 or widget_id > 9:
         return jsonify({'error': 'Invalid widget ID'}), 400
     
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], f'widget_{widget_id}_{filename}')
+    filepath = widget_files.get(widget_id) or configured_file(widget_id)
+    if not filepath:
+        return jsonify({'error': 'File not found in the uploads folder.'}), 404
     
     if not os.path.exists(filepath):
-        return jsonify({'error': 'File not found'}), 404
+        print(f"File path does not exist: {filepath}")
+        return jsonify({'error': f'File not found at path: {filepath}'}), 404
     
-    return send_file(filepath, as_attachment=True)
+    print(f"Serving file: {filepath}")
+    return send_file(filepath, as_attachment=True, download_name=os.path.basename(filepath))
 
 @app.route('/api/widget-config')
 def get_config():
@@ -130,5 +182,3 @@ def get_config():
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5000, debug=False)
-
-
